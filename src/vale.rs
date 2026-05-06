@@ -203,9 +203,20 @@ impl ValeManager {
         }
         args.push("sync".to_string());
 
+        let resolved_cwd = if !cwd.is_empty() && PathBuf::from(&cwd).exists() {
+            PathBuf::from(&cwd)
+        } else if !config_path.is_empty() {
+            PathBuf::from(&config_path)
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from("/")))
+        } else {
+            env::current_dir().unwrap_or_else(|_| PathBuf::from("/"))
+        };
+
         let exe = self.exe_path(false)?;
         let _ = Command::new(exe.as_os_str())
-            .current_dir(cwd.clone())
+            .current_dir(resolved_cwd)
             .args(args)
             // NOTE: Calling `status` causes the server to crash?
             .output()?;
